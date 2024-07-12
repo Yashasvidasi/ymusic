@@ -723,7 +723,7 @@ const PlayerPage = () => {
 
             <View className=" w-fit h-fit ">
               <Text
-                className={` text-white text-center ${
+                className={`ml-3 text-white text-center ${
                   title && title?.length > 35
                     ? 'text-xl'
                     : title && title?.length > 25
@@ -737,7 +737,7 @@ const PlayerPage = () => {
                 {title}
               </Text>
               <Text
-                className={` text-gray-400 text-center mb-2 ${
+                className={`ml-3 text-gray-400 text-center mb-2 ${
                   author && author?.length > 35
                     ? 'text-xs'
                     : author && author?.length > 25

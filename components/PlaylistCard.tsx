@@ -10,6 +10,14 @@ import Innertube from 'youtubei.js';
 import TrackPlayer from 'react-native-track-player';
 import {MMKV} from 'react-native-mmkv';
 
+type FunctionObjectType = {
+  setconfirmdelete: React.Dispatch<React.SetStateAction<boolean>>;
+  setselectedid: React.Dispatch<React.SetStateAction<string>>;
+  setthumbnail: React.Dispatch<React.SetStateAction<string>>;
+  setdefaulttitle: React.Dispatch<React.SetStateAction<string>>;
+  setauthor: React.Dispatch<React.SetStateAction<string>>;
+};
+
 const PlaylistCard = (props: {
   title: string;
   url: string;
@@ -20,6 +28,8 @@ const PlaylistCard = (props: {
   plays: string;
   albumid: string;
   playlistid: string;
+  functionobject: FunctionObjectType;
+  confirmdelete: boolean;
 }) => {
   const storage = new MMKV();
   const [pause, setpause] = useState(false);
@@ -62,7 +72,18 @@ const PlaylistCard = (props: {
     await TrackPlayer.reset();
     navigation.dispatch(pushAction);
     const getstring = checkifdownloaded();
+    let obj;
     if (getstring !== null) {
+      obj = {
+        id: getstring.id,
+        title: getstring.title,
+        artist: getstring.artist,
+        artistid: getstring.artistid,
+        albumid: getstring.albumid,
+        plays: getstring.plays,
+        thumbnail: getstring.thumbnail,
+        duration: getstring.duration,
+      };
       await TrackPlayer.add({
         id: getstring.id,
         url: getstring.url,
@@ -100,28 +121,72 @@ const PlaylistCard = (props: {
         const other = data.getStreamingInfo();
         songurl = `${other.audio_sets[0].representations[0].segment_info?.base_url}.mp3`;
 
-        myArray.forEach(async (element: any) => {
-          if (element.id === props.id) {
+        for (let i = 0; i < myArray.length; i++) {
+          if (myArray[i].id === props.id) {
+            obj = {
+              id: myArray[i].id,
+              title: myArray[i].title,
+              artist: myArray[i].artist,
+              artistid: myArray[i].artistid,
+              albumid: myArray[i].albumid,
+              plays: myArray[i].plays,
+              thumbnail: myArray[i].thumbnail,
+              duration: myArray[i].duration,
+            };
+
             await TrackPlayer.add({
-              id: element.id,
+              id: myArray[i].id,
               url: songurl, //ignore
-              title: element.title,
-              artist: element.artist,
-              artistid: element.artistid,
-              albumid: element.albumid,
-              plays: element.plays,
-              artwork: element.thumbnail,
-              duration: element.duration,
+              title: myArray[i].title,
+              artist: myArray[i].artist,
+              artistid: myArray[i].artistid,
+              albumid: myArray[i].albumid,
+              plays: myArray[i].plays,
+              artwork: myArray[i].thumbnail,
+              duration: myArray[i].duration,
               fromtype: props.playlistid,
             });
+            break;
           }
-        });
+        }
       } catch (error) {
         console.error('Error playing music:', error);
       }
     }
 
     await TrackPlayer.play();
+
+    const jsonString1 = storage.getString('history9');
+    let myArray1 = [];
+
+    if (jsonString1) {
+      try {
+        // Convert JSON string back to array
+        myArray1 = JSON.parse(jsonString1);
+      } catch (e) {
+        console.error('Error parsing JSON string from MMKV', e);
+      }
+    }
+
+    let dd = 0;
+    let found = 0;
+    for (let i = 0; i < myArray1.length; i++) {
+      if (obj && myArray1[i].id === obj.id) {
+        found = 1;
+        dd = i;
+      }
+    }
+
+    if (found) {
+      myArray1.splice(dd, 1);
+      myArray1.unshift(obj);
+    } else {
+      myArray1.unshift(obj);
+    }
+
+    const updatedJsonString2 = JSON.stringify(myArray1);
+
+    storage.set('history9', updatedJsonString2);
   };
 
   useEffect(() => {
@@ -133,8 +198,22 @@ const PlaylistCard = (props: {
     };
   }, []);
 
+  useEffect(() => {
+    if (props.confirmdelete === true) {
+      props.functionobject.setselectedid(props.id);
+
+      props.functionobject.setconfirmdelete(true);
+    }
+  }, [props.confirmdelete]);
+
   return (
     <TouchableHighlight
+      onLongPress={() => {
+        props.functionobject.setauthor(props.artist);
+        props.functionobject.setdefaulttitle(props.title);
+        props.functionobject.setthumbnail(props.url);
+        props.functionobject.setconfirmdelete(true);
+      }}
       onPress={() => {
         handlepush();
       }}>

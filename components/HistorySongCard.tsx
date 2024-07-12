@@ -1,5 +1,11 @@
 import {View, Text, Image, TouchableHighlight} from 'react-native';
-import React, {useEffect, useState, memo} from 'react';
+import React, {
+  useEffect,
+  useState,
+  memo,
+  SetStateAction,
+  Dispatch,
+} from 'react';
 import {useNavigation} from '@react-navigation/native';
 import {StackActions} from '@react-navigation/native';
 import 'event-target-polyfill';
@@ -9,6 +15,15 @@ import 'react-native-url-polyfill/auto';
 import Innertube from 'youtubei.js';
 import TrackPlayer from 'react-native-track-player';
 import {MMKV} from 'react-native-mmkv';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
+
+type FunctionObjectType = {
+  setconfirmdelete: React.Dispatch<React.SetStateAction<boolean>>;
+  setselectedid: React.Dispatch<React.SetStateAction<string>>;
+  setthumbnail: React.Dispatch<React.SetStateAction<string>>;
+  setdefaulttitle: React.Dispatch<React.SetStateAction<string>>;
+  setauthor: React.Dispatch<React.SetStateAction<string>>;
+};
 
 const HistorySongCard = (props: {
   title: string;
@@ -19,6 +34,8 @@ const HistorySongCard = (props: {
   duration: number;
   plays: string;
   albumid: string;
+  functionobject: FunctionObjectType;
+  confirmdelete: boolean;
 }) => {
   const storage = new MMKV();
   const [pause, setpause] = useState(false);
@@ -127,39 +144,55 @@ const HistorySongCard = (props: {
     };
   }, []);
 
+  useEffect(() => {
+    if (props.confirmdelete === true) {
+      props.functionobject.setselectedid(props.id);
+
+      props.functionobject.setconfirmdelete(true);
+    }
+  }, [props.confirmdelete]);
+
   return (
-    <TouchableHighlight
-      onPress={() => {
-        handlepush();
-      }}>
-      <View
-        className="flex flex-row h-20 border-gray-400 pl-0 p-2 my-1 rounded-xl"
-        style={{
-          width: '77%',
+    <>
+      <TouchableHighlight
+        onLongPress={() => {
+          props.functionobject.setauthor(props.artist);
+          props.functionobject.setdefaulttitle(props.title);
+          props.functionobject.setthumbnail(props.url);
+          props.functionobject.setconfirmdelete(true);
+        }}
+        onPress={() => {
+          handlepush();
         }}>
-        <View className="h-12 w-12 self-center ml-3">
-          <Image className="h-full w-full" source={{uri: props.url}} />
-        </View>
         <View
-          className="flex flex-col ml-5 self-center "
+          className="flex flex-row h-20 border-gray-400 pl-0 p-2 my-1 rounded-xl"
           style={{
-            width: '91%',
+            width: '77%',
           }}>
-          <Text className="text-sm text-white mb-1">
-            {truncateText(props.title, 20)}
-          </Text>
-          <View className="flex flex-row justify-between">
-            <Text className="text-xs text-gray-400">
-              {truncateText(props.artist, 20)}
+          <View className="h-12 w-12 self-center ml-3">
+            <Image className="h-full w-full" source={{uri: props.url}} />
+          </View>
+          <View
+            className="flex flex-col ml-5 self-center "
+            style={{
+              width: '91%',
+            }}>
+            <Text className="text-sm text-white mb-1">
+              {truncateText(props.title, 20)}
             </Text>
-            <Text className="text-xs text-gray-400">
-              {Math.floor(props.duration / 60)}:
-              {String(Math.floor(props.duration % 60)).padStart(2, '0')}
-            </Text>
+            <View className="flex flex-row justify-between">
+              <Text className="text-xs text-gray-400">
+                {truncateText(props.artist, 20)}
+              </Text>
+              <Text className="text-xs text-gray-400">
+                {Math.floor(props.duration / 60)}:
+                {String(Math.floor(props.duration % 60)).padStart(2, '0')}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableHighlight>
+      </TouchableHighlight>
+    </>
   );
 };
 

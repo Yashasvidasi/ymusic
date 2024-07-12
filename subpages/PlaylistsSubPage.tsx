@@ -45,6 +45,18 @@ const PlaylistsSubPage = () => {
   const [deletemodal, setdeletemodal] = useState(false);
   const [deletemodaltext, setdeletemodaltext] = useState('');
   const [deletemodalid, setdeletemodalid] = useState('');
+  const [confirmdelete, setconfirmdelete] = useState(false);
+  const [selectedid, setselectedid] = useState('');
+  const [thumbnail, setthumbnail] = useState('https://asdasdasdaskd.lolaa');
+  const [defaulttitle, setdefaulttitle] = useState('');
+  const [author, setauthor] = useState('');
+  const functionobject = {
+    setconfirmdelete,
+    setselectedid,
+    setthumbnail,
+    setdefaulttitle,
+    setauthor,
+  };
 
   const renderItem = ({item}: {item: itemtype}) => (
     <PlaylistCard
@@ -57,6 +69,8 @@ const PlaylistsSubPage = () => {
       url={item.thumbnail}
       hdurl={item.thumbnail}
       playlistid={current}
+      functionobject={functionobject}
+      confirmdelete={confirmdelete}
     />
   );
 
@@ -71,22 +85,6 @@ const PlaylistsSubPage = () => {
       subscription?.remove();
     };
   }, []);
-
-  useEffect(() => {
-    const jsonString = storage.getString('favorite1');
-    let myArray = [];
-    if (jsonString) {
-      try {
-        // Convert JSON string back to array
-        myArray = JSON.parse(jsonString);
-      } catch (e) {
-        console.error('Error parsing JSON string from MMKV', e);
-      }
-    }
-    setresults(myArray);
-  }, []);
-
-  useEffect(() => {}, [enter]);
 
   useFocusEffect(
     useCallback(() => {
@@ -104,7 +102,10 @@ const PlaylistsSubPage = () => {
     }, [visible, deletemodal]),
   );
 
-  useEffect(() => {
+  const getsongs = (current: string) => {
+    if (current.length === 0) {
+      return;
+    }
     let myArray = [];
     const jsonString = storage.getString(current);
     if (jsonString) {
@@ -116,29 +117,39 @@ const PlaylistsSubPage = () => {
       }
     }
     setdata(myArray);
+  };
+
+  useEffect(() => {
+    if (current.length !== 0) {
+      getsongs(current);
+    }
   }, [current]);
+
+  const getmainarray = () => {
+    let newarr: string[][] = [];
+    mainarray.forEach((item: {id: string}) => {
+      const jsonString = storage.getString(item.id);
+      let thumbnails: string[] = [];
+      let myArray = [];
+      if (jsonString) {
+        try {
+          // Convert JSON string back to array
+          myArray = JSON.parse(jsonString);
+        } catch (e) {
+          console.error('Error parsing JSON string from MMKV', e);
+        }
+      }
+      myArray.forEach((element: {thumbnail: string}) => {
+        thumbnails.push(element.thumbnail);
+      });
+      newarr.push(thumbnails);
+    });
+    setthumbnailarray(newarr);
+  };
 
   useFocusEffect(
     useCallback(() => {
-      let newarr: string[][] = [];
-      mainarray.forEach((item: {id: string}) => {
-        const jsonString = storage.getString(item.id);
-        let thumbnails: string[] = [];
-        let myArray = [];
-        if (jsonString) {
-          try {
-            // Convert JSON string back to array
-            myArray = JSON.parse(jsonString);
-          } catch (e) {
-            console.error('Error parsing JSON string from MMKV', e);
-          }
-        }
-        myArray.forEach((element: {thumbnail: string}) => {
-          thumbnails.push(element.thumbnail);
-        });
-        newarr.push(thumbnails);
-      });
-      setthumbnailarray(newarr);
+      getmainarray();
     }, [mainarray]),
   );
 
@@ -239,34 +250,49 @@ const PlaylistsSubPage = () => {
     }, [enter, visible, deletemodal]),
   );
 
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length > maxLength) {
+      return text.substring(0, maxLength) + '...';
+    }
+    return text;
+  };
+
+  const getdownloads = () => {
+    let myArray = [];
+    const jsonString = storage.getString('favorite1');
+    if (jsonString) {
+      try {
+        // Convert JSON string back to array
+        myArray = JSON.parse(jsonString);
+      } catch (e) {
+        console.error('Error parsing JSON string from MMKV', e);
+      }
+    }
+    setfavlength(myArray.length);
+
+    let myArray2 = [];
+    const jsonString2 = storage.getString('downloads');
+    if (jsonString2) {
+      try {
+        // Convert JSON string back to array
+        myArray2 = JSON.parse(jsonString2);
+      } catch (e) {
+        console.error('Error parsing JSON string from MMKV', e);
+      }
+    }
+    setdownlength(myArray2.length);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      let myArray = [];
-      const jsonString = storage.getString('favorite1');
-      if (jsonString) {
-        try {
-          // Convert JSON string back to array
-          myArray = JSON.parse(jsonString);
-        } catch (e) {
-          console.error('Error parsing JSON string from MMKV', e);
-        }
-      }
-      setfavlength(myArray.length);
-
-      let myArray2 = [];
-      const jsonString2 = storage.getString('downloads');
-      if (jsonString2) {
-        try {
-          // Convert JSON string back to array
-          myArray2 = JSON.parse(jsonString2);
-        } catch (e) {
-          console.error('Error parsing JSON string from MMKV', e);
-        }
-      }
-      setdownlength(myArray2.length);
-
-      return () => {};
+      getdownloads();
     }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      getsongs(current);
+    }, [current]),
   );
 
   const handlefavpress = () => {
@@ -278,8 +304,89 @@ const PlaylistsSubPage = () => {
     handlepress('downloads', 'Downloads');
   };
 
+  const handledelete = (fid: string) => {
+    const jsonString = storage.getString(current);
+    let myArray = [];
+
+    if (jsonString) {
+      try {
+        // Convert JSON string back to array
+        myArray = JSON.parse(jsonString);
+      } catch (e) {
+        console.error('Error parsing JSON string from MMKV', e);
+      }
+    }
+    let pos = 0;
+    let found = 0;
+    for (let i = 0; i < myArray.length; i++) {
+      if (myArray[i].id === fid) {
+        found = 1;
+        pos = i;
+        break;
+      }
+    }
+    if (found === 1) {
+      myArray.splice(pos, 1);
+    }
+    const updatedJsonString = JSON.stringify(myArray);
+
+    storage.set(current, updatedJsonString);
+    setdata(myArray);
+    getdownloads();
+    getmainarray();
+  };
+
   return (
     <>
+      {confirmdelete ? (
+        <View
+          className="absolute top-0 left-0 w-full h-full justify-center items-center   z-10"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          }}>
+          <View className="w-fit h-fit bg-black flex flex-col justify-center items-center p-5 rounded-lg  mr-5 border border-white">
+            <Text className="text-white text-xl mb-3 font-bold text-center ">
+              Do you wish to Remove
+            </Text>
+            <View className="flex flex-row justify-between">
+              <View className="flex flex-row p-2 border border-gray-500 rounded-xl w-full">
+                <View className="w-16 h-16 rounded-xl">
+                  <Image
+                    className="w-full h-full rounded-xl"
+                    source={{uri: thumbnail}}
+                  />
+                </View>
+                <View className="flex flex-col justify-center ml-3">
+                  <Text className="text-base text-white">
+                    {truncateText(defaulttitle, 13)}
+                  </Text>
+                  <Text className="text-sm text-gray-500">
+                    {truncateText(author, 15)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View className="flex flex-col">
+              <Pressable
+                className="border-2 border-white mt-5 mb-3 p-1 px-4 self-center rounded-md "
+                onPress={() => {
+                  handledelete(selectedid);
+                  setconfirmdelete(false);
+                }}>
+                <Text className="text-white text-base">Confirm</Text>
+              </Pressable>
+              <Pressable
+                className="border-2 border-black p-1 px-4 self-center rounded-md "
+                onPress={() => {
+                  setconfirmdelete(false);
+                }}>
+                <Text className="text-white font-bold text-base">Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : null}
       {deletemodal ? (
         <View
           className="absolute top-0 left-0 w-full h-full justify-center items-center   z-10"
@@ -513,8 +620,6 @@ const PlaylistsSubPage = () => {
             <Pressable
               onPress={() => {
                 setenter(false);
-                setcurrent('');
-                setcurrentname('');
               }}
               className=" z-50 p-1 self-center">
               <Image

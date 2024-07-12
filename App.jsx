@@ -9,15 +9,17 @@ import PlaylistInPlayer from './components/PlaylistInPlayer';
 import {MMKV} from 'react-native-mmkv';
 
 LogBox.ignoreAllLogs();
-
+let hasEffectRun = false;
+const storage = new MMKV();
 const App = () => {
-  const hasEffectRun = useRef(false);
-  const storage = new MMKV();
+  const hasEffectRunRef = useRef(false);
+
   useEffect(() => {
     // Check if the effect has already run
-    if (!hasEffectRun.current) {
+    if (!hasEffectRun && !hasEffectRunRef.current) {
       // Mark the effect as run
-      hasEffectRun.current = true;
+      hasEffectRun = true;
+      hasEffectRunRef.current = true;
 
       const jsonString2 = storage.getString('downloadbuffer');
       let myArray2 = [];

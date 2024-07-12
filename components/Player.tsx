@@ -574,7 +574,7 @@ const PlayerPage = () => {
         console.error('Error parsing JSON string from MMKV', e);
       }
     }
-    myArray2.unshift([id, url]);
+    myArray2.unshift(id);
 
     const updatedJsonString2 = JSON.stringify(myArray2);
 
@@ -597,7 +597,7 @@ const PlayerPage = () => {
     let pos = 0;
 
     for (let i = 0; i < myArray3.length; i++) {
-      if (myArray3[i][0] === id) {
+      if (myArray3[i] === id) {
         pos = i;
         found = 1;
       }

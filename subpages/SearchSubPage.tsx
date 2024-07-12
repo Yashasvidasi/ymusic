@@ -16,8 +16,6 @@ import 'web-streams-polyfill';
 import 'text-encoding-polyfill';
 import 'react-native-url-polyfill/auto';
 import Innertube from 'youtubei.js';
-
-//AIzaSyDTI8s_USJq4SxFGRLZoTcdrZfgP5RvO-c
 import Search, {
   SearchContinuation,
 } from 'd:/ymusic/ymusic/node_modules/youtubei.js/dist/src/parser/ytmusic/Search';
@@ -158,6 +156,35 @@ const SearchSubPage = () => {
     }
   };
 
+  const handledelete = (innertext: string) => {
+    const jsonString = storage.getString('searchhistory2');
+    let myArray = [];
+
+    if (jsonString) {
+      try {
+        // Convert JSON string back to array
+        myArray = JSON.parse(jsonString);
+      } catch (e) {
+        console.error('Error parsing JSON string from MMKV', e);
+      }
+    }
+    let found = 0;
+    let pos = 0;
+    for (let i = 0; i < myArray.length; i++) {
+      if (myArray[i] === innertext) {
+        found = 1;
+        pos = i;
+      }
+    }
+    if (found === 1) {
+      myArray.splice(pos, 1);
+    }
+    const updatedJsonString = JSON.stringify(myArray);
+
+    storage.set('searchhistory2', updatedJsonString);
+    getsearchhistory();
+  };
+
   return (
     <>
       <View className="flex flex-col ">
@@ -263,25 +290,35 @@ const SearchSubPage = () => {
             {searchhistory.length !== 0
               ? searchhistory.map((item, index) => {
                   return (
-                    <Pressable
-                      onPress={() => {
-                        setText(item);
-                        handleSearch(item);
-                      }}
+                    <View
                       className=" self-end mr-9 flex flex-row justify-between my-2 p-2"
                       style={{
                         width: '87%',
                       }}
                       key={index}>
-                      <Image
-                        className="h-6 w-6 self-center ml-4"
-                        tintColor={'gray'}
-                        source={require('../public/icons/history.png')}
-                      />
-                      <Text className="text-gray-500 text-xl ">
-                        {truncateText(item)}
-                      </Text>
-                    </Pressable>
+                      <Pressable
+                        className="self-center ml-4 p-2 "
+                        onPress={() => {
+                          handledelete(item);
+                        }}>
+                        <Image
+                          className="h-6 w-6 "
+                          tintColor={'gray'}
+                          source={require('../public/icons/bin.png')}
+                        />
+                      </Pressable>
+
+                      <Pressable
+                        className="flex-1 p-1"
+                        onPress={() => {
+                          setText(item);
+                          handleSearch(item);
+                        }}>
+                        <Text className="text-gray-500 text-xl  text-right ">
+                          {truncateText(item)}
+                        </Text>
+                      </Pressable>
+                    </View>
                   );
                 })
               : null}
